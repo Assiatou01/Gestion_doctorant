@@ -4,17 +4,17 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Utilisateur {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
     private String email;
-    private String tokenOAuth;
+    private String password; // Pour le login manuel
+    private String tokenOAuth; // Pour le "sub" de Google
+    private String provider; // "LOCAL" ou "GOOGLE"
 
     @Enumerated(EnumType.STRING)
     private Role role;

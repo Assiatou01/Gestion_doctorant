@@ -24,14 +24,19 @@ public class Doctorant {
 
     private LocalDate dateStart;
     private LocalDate dateEnd;
+
+    @Column(columnDefinition = "TEXT")
     private String maturation;
 
     @Column(columnDefinition = "TEXT")
     private String interet;
+
     @Column(columnDefinition = "TEXT")
     private String souhait;
 
+    @Column(columnDefinition = "TEXT")
     private String cv;
+
     private Boolean publicationFaire;
 
     @ManyToOne
@@ -55,9 +60,7 @@ public class Doctorant {
     @JsonIgnore
     private List<These> theses = new ArrayList<>();
 
-    @OneToMany
-    @JoinColumn(name = "doctorant_id")
-    @JsonIgnore
+    @OneToMany(mappedBy = "doctorant", cascade = CascadeType.ALL)
     private List<Startup> startups = new ArrayList<>();
 
     @ManyToMany

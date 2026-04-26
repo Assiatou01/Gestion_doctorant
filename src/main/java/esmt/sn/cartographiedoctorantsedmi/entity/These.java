@@ -34,4 +34,7 @@ public class These {
     )
     @JsonIgnore
     private List<MotsCles> motsCles = new ArrayList<>();
+    @ManyToMany(mappedBy = "theses")
+    private List<Doctorant> doctorants = new ArrayList<>();
+
 }

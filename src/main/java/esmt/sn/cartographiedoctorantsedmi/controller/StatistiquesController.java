@@ -21,4 +21,5 @@ public class StatistiquesController {
     public ResponseEntity<Map<String, Object>> getStats() {
         return ResponseEntity.ok(statistiquesService.getStatistiquesGlobales());
     }
+
 }
