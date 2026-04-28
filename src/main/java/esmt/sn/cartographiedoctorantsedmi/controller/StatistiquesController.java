@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.util.Map;
 
 @RestController
@@ -16,10 +15,15 @@ public class StatistiquesController {
 
     private final StatistiquesService statistiquesService;
 
-    // API pour alimenter les piques et camemberts graphiques
     @GetMapping("/globales")
     public ResponseEntity<Map<String, Object>> getStats() {
-        return ResponseEntity.ok(statistiquesService.getStatistiquesGlobales());
+        return ResponseEntity.ok(Map.of(
+                "totalDoctorants", statistiquesService.getTotalDoctorants(),
+                "totalTheses", statistiquesService.getTotalTheses(),
+                "statsFacultes", statistiquesService.getStatsFacultes(),
+                "statsLaboratoires", statistiquesService.getStatsLaboratoires(),
+                "statsSecteurs", statistiquesService.getStatsSecteurs(),
+                "thesesParDoctorant", statistiquesService.getThesesParDoctorant()
+        ));
     }
-
 }

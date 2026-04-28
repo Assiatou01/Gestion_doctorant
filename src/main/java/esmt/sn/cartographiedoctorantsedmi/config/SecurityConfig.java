@@ -5,8 +5,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -14,43 +15,41 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
-    private final CustomAuthenticationSuccessHandler successHandler;
+    private final AuthenticationSuccessHandler successHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                    .csrf(AbstractHttpConfigurer::disable)
-                    .authorizeHttpRequests(auth -> auth
-                            // 1. Autoriser explicitement les ressources critiques et le login
-                            .requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
-
-                            // 2. Vérifier les rôles (Attention : hasRole cherche "ROLE_ADMINISTRATEUR")
-                            .requestMatchers("/dashboard/**").hasAnyAuthority("ROLE_ADMINISTRATEUR", "ROLE_GESTIONNAIRE")
-                            .requestMatchers("/doctorant/**").hasAnyAuthority("ROLE_ADMINISTRATEUR", "ROLE_GESTIONNAIRE", "ROLE_CANDIDAT")
-
-                            .anyRequest().authenticated()
-                    )
-                    .formLogin(form -> form
-                            .loginPage("/login")
-                            .loginProcessingUrl("/perform_login") // Doit correspondre au <form action="...">
-                            .successHandler(successHandler) // Ton handler personnalisé
-                            .permitAll()
-                    )
-                    .oauth2Login(oauth -> oauth
-                            .loginPage("/login")
-                            .successHandler(successHandler) // Utilise AUSSI le handler pour Google
-                            .userInfoEndpoint(u -> u.userService(customOAuth2UserService))
-                            .permitAll()
-                    )
-                    // ... reste du code
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                                .requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+                                // Pour le test, on autorise tout (à commenter après vérification)
+                                .requestMatchers("/doctorant/mes-theses", "/these/candidat/**", "/these/modifier-moi/**", "/these/supprimer-moi/**").hasRole("CANDIDAT")
+                                .requestMatchers("/theses", "/these/nouveau", "/these/modifier/**", "/these/supprimer/**", "/dashboard/**").hasAnyRole("GESTIONNAIRE", "ADMINISTRATEUR")
+                                .anyRequest().permitAll()
+                        // Normalement, après test, on décommente les lignes suivantes et on commente la ligne ci-dessus :
+                        // .requestMatchers("/doctorant/**", "/doctorant/mes-theses", "/these/candidat/**").hasRole("CANDIDAT")
+                        // .requestMatchers("/dashboard/**", "/doctorants", "/theses", "/these/**", "/api/statistiques/**").hasAnyRole("GESTIONNAIRE", "ADMINISTRATEUR")
+                        // .anyRequest().authenticated()
+                )
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .loginProcessingUrl("/perform_login")
+                        .successHandler(successHandler)
+                        .permitAll()
+                )
+                .oauth2Login(oauth -> oauth
+                        .loginPage("/login")
+                        .successHandler(successHandler)
+                        .userInfoEndpoint(u -> u.userService(customOAuth2UserService))
+                        .permitAll()
+                )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout")
                         .deleteCookies("JSESSIONID")
                         .permitAll()
                 );
-
         return http.build();
-
     }
 }

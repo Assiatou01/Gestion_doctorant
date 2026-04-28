@@ -1,5 +1,6 @@
 package esmt.sn.cartographiedoctorantsedmi.controller;
 
+import esmt.sn.cartographiedoctorantsedmi.config.CustomUserDetails;
 import esmt.sn.cartographiedoctorantsedmi.entity.Doctorant;
 import esmt.sn.cartographiedoctorantsedmi.entity.These;
 import esmt.sn.cartographiedoctorantsedmi.repository.DoctorantRepository;
@@ -7,18 +8,14 @@ import esmt.sn.cartographiedoctorantsedmi.repository.FaculteRepository;
 import esmt.sn.cartographiedoctorantsedmi.repository.LaboratoireRepository;
 import esmt.sn.cartographiedoctorantsedmi.repository.TheseRepository;
 import esmt.sn.cartographiedoctorantsedmi.service.StatistiquesService;
-import jakarta.servlet.http.HttpSession;
-import jakarta.transaction.Transactional;
+import esmt.sn.cartographiedoctorantsedmi.service.TheseService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
@@ -29,32 +26,143 @@ public class WebController {
     private final FaculteRepository faculteRepository;
     private final LaboratoireRepository laboratoireRepository;
     private final TheseRepository theseRepository;
+    private final TheseService theseService;
 
-//    @GetMapping("/dashboard")
-//    public String showDashboard(Model model) {
-//        model.addAttribute("totalDoctorants", statistiquesService.getTotalDoctorants());
-//        model.addAttribute("totalTheses", statistiquesService.getTotalTheses());
-//        model.addAttribute("statsFacultes", statistiquesService.getRepartitionParFaculte());
-//        return "dashboard";
-//    }
-
+    // ========== Dashboard (pour gestionnaire/admin) ==========
     @GetMapping("/dashboard")
-    public String showDashboard(Model model, HttpSession session) {
+    public String showDashboard(Model model) {
         model.addAttribute("totalDoctorants", statistiquesService.getTotalDoctorants());
         model.addAttribute("totalTheses", statistiquesService.getTotalTheses());
-
-        // On utilise les noms exacts de vos méthodes du service
         model.addAttribute("statsFacultes", statistiquesService.getStatsFacultes());
         model.addAttribute("statsLabos", statistiquesService.getStatsLaboratoires());
         model.addAttribute("statsSecteurs", statistiquesService.getStatsSecteurs());
-
         return "dashboard";
     }
 
+    // ========== Candidat : voir ses propres thèses ==========
+    @GetMapping("/doctorant/mes-theses")
+    public String mesTheses(Authentication auth, Model model) {
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        Long doctorantId = userDetails.getUtilisateur().getDoctorant().getId();
+        List<These> mesTheses = theseRepository.findByDoctorantId(doctorantId);
+        model.addAttribute("listeTheses", mesTheses);
+        model.addAttribute("isCandidat", true);
+        return "theses";
+    }
+
+    // ========== Candidat : formulaire pour créer une thèse ==========
+    @GetMapping("/these/candidat/nouveau")
+    public String nouvelleTheseCandidat(Authentication auth, Model model) {
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        Long doctorantId = userDetails.getUtilisateur().getDoctorant().getId();
+        These these = new These();
+        model.addAttribute("these", these);
+        model.addAttribute("candidatId", doctorantId);
+        return "these-form";
+    }
+
+    // ========== Candidat : sauvegarde de sa propre thèse ==========
+    @PostMapping("/these/candidat/save")
+    public String saveTheseCandidat(@ModelAttribute These these, @RequestParam Long candidatId, Authentication auth) {
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        Long authenticatedId = userDetails.getUtilisateur().getDoctorant().getId();
+        if (!authenticatedId.equals(candidatId)) {
+            return "redirect:/doctorant/mes-theses?error=unauthorized";
+        }
+        Doctorant doc = doctorantRepository.findById(candidatId).orElseThrow();
+        these.getDoctorants().add(doc);
+        theseService.saveTheseWithDoctorant(these, candidatId, doctorantRepository);
+        return "redirect:/doctorant/mes-theses";
+    }
+
+    // ========== Candidat : modifier sa thèse ==========
+    @GetMapping("/these/modifier-moi/{id}")
+    public String modifierThesePourMoi(@PathVariable Long id, Authentication auth, Model model) {
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        Long doctorantId = userDetails.getUtilisateur().getDoctorant().getId();
+        These these = theseRepository.findById(id).orElseThrow();
+        if (these.getDoctorants().stream().noneMatch(d -> d.getId().equals(doctorantId))) {
+            return "redirect:/doctorant/mes-theses?error=unauthorized";
+        }
+        model.addAttribute("these", these);
+        model.addAttribute("candidatId", doctorantId);
+        return "these-form";
+    }
+
+    // ========== Candidat : supprimer sa thèse ==========
+    @GetMapping("/these/supprimer-moi/{id}")
+    public String supprimerThesePourMoi(@PathVariable Long id, Authentication auth) {
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        Long doctorantId = userDetails.getUtilisateur().getDoctorant().getId();
+        These these = theseRepository.findById(id).orElseThrow();
+        if (these.getDoctorants().stream().noneMatch(d -> d.getId().equals(doctorantId))) {
+            return "redirect:/doctorant/mes-theses?error=unauthorized";
+        }
+        theseService.deleteTheseWithRelations(id);
+        return "redirect:/doctorant/mes-theses";
+    }
+
+    // ========== Gestionnaire/admin : voir toutes les thèses ==========
+    @GetMapping("/theses")
+    public String showThesesList(Model model) {
+        model.addAttribute("listeTheses", theseRepository.findAll());
+        model.addAttribute("isCandidat", false);
+        return "theses";
+    }
+
+    // ========== Gestionnaire/admin : formulaire de thèse (avec choix doctorant) ==========
+    @GetMapping("/these/nouveau")
+    public String addTheseForm(Model model) {
+        model.addAttribute("these", new These());
+        model.addAttribute("doctorants", doctorantRepository.findAll());
+        return "these-form";
+    }
+
+    @GetMapping("/these/modifier/{id}")
+    public String editTheseForm(@PathVariable Long id, Model model) {
+        return theseRepository.findById(id)
+                .map(t -> {
+                    model.addAttribute("these", t);
+                    model.addAttribute("doctorants", doctorantRepository.findAll());
+                    return "these-form";
+                })
+                .orElse("redirect:/theses");
+    }
+
+    @PostMapping("/these/save")
+    public String saveThese(@ModelAttribute These these, @RequestParam(required = false) Long doctorantId) {
+        theseService.saveTheseWithDoctorant(these, doctorantId, doctorantRepository);
+        return "redirect:/theses";
+    }
+
+    @GetMapping("/these/supprimer/{id}")
+    public String deleteThese(@PathVariable Long id) {
+        theseService.deleteTheseWithRelations(id);
+        return "redirect:/theses";
+    }
+
+    // ========== Gestion des doctorants ==========
     @GetMapping("/doctorants")
     public String showDoctorantsList(Model model) {
         model.addAttribute("listeDoctorants", doctorantRepository.findAll());
         return "doctorants";
+    }
+
+    @GetMapping("/doctorant/details/{id}")
+    public String showDoctorantDetails(@PathVariable Long id, Model model, Authentication authentication) {
+        if (authentication != null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
+            CustomUserDetails ud = (CustomUserDetails) authentication.getPrincipal();
+            Long myId = ud.getUtilisateur().getDoctorant().getId();
+            if (!myId.equals(id)) {
+                return "redirect:/doctorant/mes-theses";
+            }
+        }
+        return doctorantRepository.findById(id)
+                .map(doc -> {
+                    model.addAttribute("doctorant", doc);
+                    return "doctorant-details";
+                })
+                .orElse("redirect:/doctorants");
     }
 
     @GetMapping("/doctorant/nouveau")
@@ -88,139 +196,4 @@ public class WebController {
         doctorantRepository.deleteById(id);
         return "redirect:/doctorants";
     }
-
-    @GetMapping("/doctorant/details/{id}")
-    public String showDoctorantDetails(@PathVariable Long id, Model model) {
-        return doctorantRepository.findById(id)
-                .map(doc -> {
-                    model.addAttribute("doctorant", doc);
-                    return "doctorant-details";
-                })
-                .orElse("redirect:/doctorants");
-    }
-
-
-    // Pour these
-
-    @GetMapping("/theses")
-    public String showThesesList(Model model) {
-        model.addAttribute("listeTheses", theseRepository.findAll());
-        return "theses";
-    }
-
-    @GetMapping("/these/details/{id}")
-    public String showTheseDetails(@PathVariable Long id, Model model) {
-        return theseRepository.findById(id)
-                .map(these -> {
-                    model.addAttribute("these", these);
-                    return "these-details";
-                })
-                .orElse("redirect:/theses");
-    }
-
-
-
-    @GetMapping("/these/supprimer/{id}")
-    @Transactional // Ajout de Transactional pour assurer la cohérence
-    public String deleteThese(@PathVariable Long id) {
-        try {
-            theseRepository.findById(id).ifPresent(these -> {
-                // Rompre les liens avec les doctorants pour éviter les violations de FK
-                if (these.getDoctorants() != null) {
-                    for (Doctorant d : these.getDoctorants()) {
-                        d.getTheses().remove(these);
-                    }
-                }
-                // Supprimer la thèse après avoir nettoyé les relations
-                theseRepository.delete(these);
-            });
-        } catch (Exception e) {
-            System.err.println("Erreur de suppression : " + e.getMessage());
-        }
-        return "redirect:/theses";
-    }
-//    @GetMapping("/these/nouveau")
-//    public String addTheseForm(Model model) {
-//        model.addAttribute("these", new These());
-//        return "these-form";
-//    }
-//
-//    @GetMapping("/these/modifier/{id}")
-//    public String editTheseForm(@PathVariable Long id, Model model) {
-//        return theseRepository.findById(id)
-//                .map(t -> {
-//                    model.addAttribute("these", t);
-//                    return "these-form";
-//                })
-//                .orElse("redirect:/theses");
-//    }
-
-//    @PostMapping("/these/save")
-//    public String saveThese(These these) {
-//        theseRepository.save(these);
-//        return "redirect:/theses";
-//    }
-@GetMapping("/these/nouveau")
-public String addTheseForm(Model model) {
-    model.addAttribute("these", new These());
-    // AJOUT : Charger la liste des doctorants pour le select
-    model.addAttribute("doctorants", doctorantRepository.findAll());
-    return "these-form";
-}
-
-    @GetMapping("/these/modifier/{id}")
-    public String editTheseForm(@PathVariable Long id, Model model) {
-        return theseRepository.findById(id)
-                .map(t -> {
-                    model.addAttribute("these", t);
-                    // AJOUT : Charger la liste des doctorants pour le select
-                    model.addAttribute("doctorants", doctorantRepository.findAll());
-                    return "these-form";
-                })
-                .orElse("redirect:/theses");
-    }
-//    @PostMapping("/these/save")
-//    //public String saveThese(These these, Long doctorantId) {
-//    public String saveThese(These these, @RequestParam(required = false) Long doctorantId) {
-//        if (doctorantId != null) {
-//            doctorantRepository.findById(doctorantId).ifPresent(doc -> {
-//                these.getDoctorants().add(doc);
-//                doc.getTheses().add(these);
-//            });
-//        }
-//        theseRepository.save(these);
-//        return "redirect:/theses";
-//    }
-
-    @PostMapping("/these/save")
-    @Transactional
-    public String saveThese(These these, @RequestParam(required = false) Long doctorantId) {
-        if (doctorantId != null) {
-            doctorantRepository.findById(doctorantId).ifPresent(doc -> {
-                // Association bidirectionnelle sécurisée
-                if (!these.getDoctorants().contains(doc)) {
-                    these.getDoctorants().add(doc);
-                }
-                if (!doc.getTheses().contains(these)) {
-                    doc.getTheses().add(these);
-                }
-            });
-        }
-        theseRepository.save(these);
-        return "redirect:/theses";
-    }
-
-
-    public Map<String, Long> getStatsFacultes() {
-        return doctorantRepository.findAll().stream()
-                .filter(d -> d.getFaculte() != null)
-                .collect(Collectors.groupingBy(d -> d.getFaculte().getNom(), Collectors.counting()));
-    }
-
-    public Map<String, Long> getStatsLaboratoires() {
-        return doctorantRepository.findAll().stream()
-                .filter(d -> d.getLaboratoire() != null)
-                .collect(Collectors.groupingBy(d -> d.getLaboratoire().getNom(), Collectors.counting()));
-    }
-
 }
