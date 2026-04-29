@@ -20,6 +20,9 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         String role = userDetails.getUtilisateur().getRole().name();
 
+        request.getSession().setAttribute("user", userDetails.getUtilisateur());
+        request.getSession().setAttribute("isCandidat", role.equals("CANDIDAT"));
+
         log.info("Connexion réussie : {} ({})", userDetails.getUsername(), role);
 
         switch (role) {

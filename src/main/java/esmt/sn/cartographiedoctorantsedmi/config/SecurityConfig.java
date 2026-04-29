@@ -24,13 +24,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                                 .requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
                                 // Pour le test, on autorise tout (à commenter après vérification)
-                                .requestMatchers("/doctorant/mes-theses", "/these/candidat/**", "/these/modifier-moi/**", "/these/supprimer-moi/**").hasRole("CANDIDAT")
+                                .requestMatchers("/these/modifier-moi/**", "/these/supprimer-moi/**", "/doctorant/modifier/**", "/doctorant/upload-cv/**").hasRole("CANDIDAT")
+                                .requestMatchers("/doctorant/mes-theses", "/doctorant/details/**", "/these/candidat/**").hasAnyRole("CANDIDAT", "GESTIONNAIRE", "ADMINISTRATEUR")
                                 .requestMatchers("/theses", "/these/nouveau", "/these/modifier/**", "/these/supprimer/**", "/dashboard/**").hasAnyRole("GESTIONNAIRE", "ADMINISTRATEUR")
                                 .anyRequest().permitAll()
-                        // Normalement, après test, on décommente les lignes suivantes et on commente la ligne ci-dessus :
-                        // .requestMatchers("/doctorant/**", "/doctorant/mes-theses", "/these/candidat/**").hasRole("CANDIDAT")
-                        // .requestMatchers("/dashboard/**", "/doctorants", "/theses", "/these/**", "/api/statistiques/**").hasAnyRole("GESTIONNAIRE", "ADMINISTRATEUR")
-                        // .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")

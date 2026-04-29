@@ -14,7 +14,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Controller
@@ -102,7 +108,98 @@ public class WebController {
         return "redirect:/doctorant/mes-theses";
     }
 
-    // ========== Gestionnaire/admin : voir toutes les thèses ==========
+    // ========== Upload d'un CV (candidat, gestionnaire ou admin) ==========
+    @PostMapping("/doctorant/upload-cv/{id}")
+    public String uploadCv(@PathVariable Long id,
+                           @RequestParam("file") MultipartFile file,
+                           Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long currentDoctorantId = userDetails.getUtilisateur().getDoctorant().getId();
+        String role = userDetails.getUtilisateur().getRole().name();
+
+        boolean isAdminOrManager = role.equals("ADMINISTRATEUR") || role.equals("GESTIONNAIRE");
+        boolean isOwner = currentDoctorantId.equals(id);
+        if (!isAdminOrManager && !isOwner) {
+            return "redirect:/doctorant/details/" + id + "?error=unauthorized";
+        }
+
+        if (file.isEmpty()) {
+            return "redirect:/doctorant/details/" + id + "?error=emptyfile";
+        }
+
+        try {
+            String uploadDir = "uploads/cvs/";
+            String originalName = file.getOriginalFilename();
+            String extension = originalName.substring(originalName.lastIndexOf("."));
+            String fileName = "cv_" + id + "_" + System.currentTimeMillis() + extension;
+            Path path = Paths.get(uploadDir + fileName);
+            Files.createDirectories(path.getParent());
+            Files.write(path, file.getBytes());
+
+            Doctorant doc = doctorantRepository.findById(id).orElseThrow();
+            doc.setCv("/uploads/cvs/" + fileName);
+            doctorantRepository.save(doc);
+
+            return "redirect:/doctorant/details/" + id + "?success=cvUpdated";
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "redirect:/doctorant/details/" + id + "?error=uploadFailed";
+        }
+    }
+
+    // ========== Détail d'un doctorant (candidat ne voit que le sien) avec dates formatées ==========
+    @GetMapping("/doctorant/details/{id}")
+    public String showDoctorantDetails(@PathVariable Long id, Model model, Authentication authentication) {
+        if (authentication != null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
+            CustomUserDetails ud = (CustomUserDetails) authentication.getPrincipal();
+            Long myId = ud.getUtilisateur().getDoctorant().getId();
+            if (!myId.equals(id)) {
+                return "redirect:/doctorant/mes-theses?error=unauthorized";
+            }
+        }
+        return doctorantRepository.findById(id)
+                .map(doc -> {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy");
+                    if (doc.getDateStart() != null) {
+                        model.addAttribute("dateStartFormatted", doc.getDateStart().format(formatter));
+                    }
+                    if (doc.getDateEnd() != null) {
+                        model.addAttribute("dateEndFormatted", doc.getDateEnd().format(formatter));
+                    }
+                    model.addAttribute("doctorant", doc);
+                    return "doctorant-details";
+                })
+                .orElse("redirect:/doctorants");
+    }
+
+    // ========== Modifier doctorant (candidat ne peut modifier que lui-même) ==========
+    @GetMapping("/doctorant/modifier/{id}")
+    public String editDoctorantForm(@PathVariable Long id, Model model, Authentication authentication) {
+        if (authentication != null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
+            CustomUserDetails ud = (CustomUserDetails) authentication.getPrincipal();
+            Long myId = ud.getUtilisateur().getDoctorant().getId();
+            if (!myId.equals(id)) {
+                return "redirect:/doctorant/mes-theses?error=unauthorized";
+            }
+        }
+        return doctorantRepository.findById(id)
+                .map(doc -> {
+                    model.addAttribute("doctorant", doc);
+                    model.addAttribute("facultes", faculteRepository.findAll());
+                    model.addAttribute("laboratoires", laboratoireRepository.findAll());
+                    return "doctorant-form";
+                })
+                .orElse("redirect:/doctorants");
+    }
+
+    // ========== Sauvegarde doctorant ==========
+    @PostMapping("/doctorant/save")
+    public String saveDoctorant(Doctorant doctorant) {
+        doctorantRepository.save(doctorant);
+        return "redirect:/doctorants";
+    }
+
+    // ========== Gestionnaire/admin : toutes les thèses ==========
     @GetMapping("/theses")
     public String showThesesList(Model model) {
         model.addAttribute("listeTheses", theseRepository.findAll());
@@ -110,7 +207,6 @@ public class WebController {
         return "theses";
     }
 
-    // ========== Gestionnaire/admin : formulaire de thèse (avec choix doctorant) ==========
     @GetMapping("/these/nouveau")
     public String addTheseForm(Model model) {
         model.addAttribute("these", new These());
@@ -141,28 +237,14 @@ public class WebController {
         return "redirect:/theses";
     }
 
-    // ========== Gestion des doctorants ==========
+    // ========== Liste des doctorants (accessible à gestionnaire/admin uniquement) ==========
     @GetMapping("/doctorants")
-    public String showDoctorantsList(Model model) {
+    public String showDoctorantsList(Model model, Authentication authentication) {
+        if (authentication != null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
+            return "redirect:/doctorant/mes-theses?error=unauthorized";
+        }
         model.addAttribute("listeDoctorants", doctorantRepository.findAll());
         return "doctorants";
-    }
-
-    @GetMapping("/doctorant/details/{id}")
-    public String showDoctorantDetails(@PathVariable Long id, Model model, Authentication authentication) {
-        if (authentication != null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
-            CustomUserDetails ud = (CustomUserDetails) authentication.getPrincipal();
-            Long myId = ud.getUtilisateur().getDoctorant().getId();
-            if (!myId.equals(id)) {
-                return "redirect:/doctorant/mes-theses";
-            }
-        }
-        return doctorantRepository.findById(id)
-                .map(doc -> {
-                    model.addAttribute("doctorant", doc);
-                    return "doctorant-details";
-                })
-                .orElse("redirect:/doctorants");
     }
 
     @GetMapping("/doctorant/nouveau")
@@ -171,24 +253,6 @@ public class WebController {
         model.addAttribute("facultes", faculteRepository.findAll());
         model.addAttribute("laboratoires", laboratoireRepository.findAll());
         return "doctorant-form";
-    }
-
-    @GetMapping("/doctorant/modifier/{id}")
-    public String editDoctorantForm(@PathVariable Long id, Model model) {
-        return doctorantRepository.findById(id)
-                .map(doc -> {
-                    model.addAttribute("doctorant", doc);
-                    model.addAttribute("facultes", faculteRepository.findAll());
-                    model.addAttribute("laboratoires", laboratoireRepository.findAll());
-                    return "doctorant-form";
-                })
-                .orElse("redirect:/doctorants");
-    }
-
-    @PostMapping("/doctorant/save")
-    public String saveDoctorant(Doctorant doctorant) {
-        doctorantRepository.save(doctorant);
-        return "redirect:/doctorants";
     }
 
     @GetMapping("/doctorant/supprimer/{id}")
