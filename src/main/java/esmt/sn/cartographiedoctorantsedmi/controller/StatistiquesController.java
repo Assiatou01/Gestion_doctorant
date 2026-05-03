@@ -26,4 +26,14 @@ public class StatistiquesController {
                 "thesesParDoctorant", statistiquesService.getThesesParDoctorant()
         ));
     }
+
+    @GetMapping("/competences")
+    public ResponseEntity<Map<String, Long>> getCompetences() {
+        return ResponseEntity.ok(statistiquesService.getStatsCompetences());
+    }
+
+    @GetMapping("/domaines")
+    public ResponseEntity<Map<String, Long>> getDomaines() {
+        return ResponseEntity.ok(statistiquesService.getStatsDomainesRecherche());
+    }
 }

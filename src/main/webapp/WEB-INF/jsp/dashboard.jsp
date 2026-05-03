@@ -5,13 +5,52 @@
     <title>Dashboard EDMI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .card-stats { border: none; border-radius: 1rem; transition: transform 0.2s; }
-        .card-stats:hover { transform: translateY(-5px); }
-        .stat-icon { font-size: 2.5rem; opacity: 0.3; position: absolute; right: 20px; bottom: 20px; }
-        .chart-card { border: none; border-radius: 1rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.05); }
-        body { background-color: #f8f9fc; }
+        :root {
+            --transition: all 0.2s ease-in-out;
+            --shadow-md: 0 0.5rem 1rem rgba(0,0,0,0.08);
+            --shadow-lg: 0 1rem 2rem rgba(0,0,0,0.12);
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+        }
+        .stat-card-custom {
+            border: none;
+            border-radius: 1rem;
+            transition: var(--transition);
+            overflow: hidden;
+            position: relative;
+            color: white;
+        }
+        .stat-card-custom:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        .stat-card-custom::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+            transform: rotate(30deg);
+            pointer-events: none;
+        }
+        .bg-gradient-primary { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); }
+        .bg-gradient-success { background: linear-gradient(135deg, #20c997 0%, #198754 100%); }
+        .stat-icon {
+            font-size: 2.5rem;
+            opacity: 0.2;
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            transform: rotate(-10deg);
+            transition: var(--transition);
+        }
+        .stat-card-custom:hover .stat-icon {
+            transform: rotate(0deg) scale(1.1);
+            opacity: 0.3;
+        }
     </style>
 </head>
 <body>
@@ -21,93 +60,116 @@
 <div class="main-content">
     <jsp:include page="fragments/header.jsp" />
 
-    <div class="container py-3">
-        <div class="row g-4 mb-5">
+    <div class="container-fluid py-3">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold" style="color: var(--text-main);">Tableau de bord</h2>
+            <c:if test="${pageContext.request.isUserInRole('ROLE_ADMINISTRATEUR')}">
+                <button type="button" class="btn btn-danger rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#importModal">
+                    <i class="fas fa-upload me-2"></i> Importer CSV
+                </button>
+            </c:if>
+        </div>
+
+        <!-- Cartes synthétiques -->
+        <div class="row g-3 mb-4">
             <div class="col-md-6">
-                <div class="card card-stats bg-primary text-white p-3 position-relative">
+                <div class="card stat-card-custom bg-gradient-primary p-3">
                     <i class="fas fa-users stat-icon"></i>
-                    <div class="card-body">
-                        <h5>Total Doctorants</h5>
-                        <h2 class="display-4 fw-bold" id="totalDoc">...</h2>
-                        <a href="/doctorants" class="btn btn-outline-light rounded-pill mt-2">Voir la liste <i class="fas fa-arrow-right ms-2"></i></a>
+                    <div class="card-body p-0">
+                        <h6 class="text-uppercase fw-bold opacity-75 mb-1">Total Doctorants</h6>
+                        <h2 class="display-5 fw-bold mb-2" id="totalDoc">...</h2>
+                        <a href="/doctorants" class="btn btn-light rounded-pill px-3 py-1 btn-sm fw-bold" style="color: #0a58ca;">Voir l'annuaire <i class="fas fa-arrow-right ms-1"></i></a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="card card-stats bg-success text-white p-3 position-relative">
+                <div class="card stat-card-custom bg-gradient-success p-3">
                     <i class="fas fa-book-open stat-icon"></i>
-                    <div class="card-body">
-                        <h5>Total Thèses</h5>
-                        <h2 class="display-4 fw-bold" id="totalTheses">...</h2>
-                        <a href="/theses" class="btn btn-outline-light rounded-pill mt-2">Voir la liste <i class="fas fa-arrow-right ms-2"></i></a>
+                    <div class="card-body p-0">
+                        <h6 class="text-uppercase fw-bold opacity-75 mb-1">Total Thèses</h6>
+                        <h2 class="display-5 fw-bold mb-2" id="totalTheses">...</h2>
+                        <a href="/theses" class="btn btn-light rounded-pill px-3 py-1 btn-sm fw-bold text-success">Consulter les thèses <i class="fas fa-arrow-right ms-1"></i></a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <c:if test="${pageContext.request.isUserInRole('ROLE_ADMINISTRATEUR')}">
-            <div class="row mb-4">
-                <div class="col text-end">
-                    <button type="button" class="btn btn-danger rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#importModal">
-                        <i class="fas fa-upload me-2"></i> Importer CSV
-                    </button>
-                </div>
-            </div>
-        </c:if>
-
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="card chart-card p-3"><h5 class="text-center text-primary fw-bold">Répartition par Faculté</h5><canvas id="chartFacultes" height="250"></canvas></div>
-            </div>
-            <div class="col-md-6">
-                <div class="card chart-card p-3"><h5 class="text-center text-primary fw-bold">Répartition par Laboratoire</h5><canvas id="chartLabos" height="250"></canvas></div>
-            </div>
-            <div class="col-md-6">
-                <div class="card chart-card p-3"><h5 class="text-center text-primary fw-bold">Thèses par secteur</h5><canvas id="chartSecteurs" height="250"></canvas></div>
-            </div>
-            <div class="col-md-6">
-                <div class="card chart-card p-3"><h5 class="text-center text-primary fw-bold">Thèses par doctorant</h5><canvas id="chartThesesParDoctorant" height="250"></canvas></div>
-            </div>
+        <!-- Bouton vers la page des statistiques détaillées -->
+        <div class="text-center mb-5">
+            <a href="/statistiques" class="btn btn-outline-primary rounded-pill px-5 py-2 shadow-sm">
+                <i class="fas fa-chart-line me-2"></i> Détails des statistiques
+            </a>
         </div>
     </div>
 
-    <!-- Modal import CSV -->
+    <!-- Modal import CSV (inchangé) -->
     <div class="modal fade" id="importModal" tabindex="-1">
-        <div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="fas fa-file-csv"></i> Importer des doctorants</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="csvUploadForm" enctype="multipart/form-data"><div class="mb-3"><label for="csvFile" class="form-label">Fichier CSV (UTF-8, séparateur tabulation)</label><input type="file" class="form-control" id="csvFile" name="file" accept=".csv,.txt" required><div class="form-text small">Colonnes : id, last_name, first_name, email, telephone, faculte, laboratoire, doctorale, these, startup, secteur, impact, problematique, solution, date_start, date_end, maturation, interet, competences, domaine_recherche, motscles, publication, publication_faire, souhait, cv.</div></div><div id="importProgress" class="progress d-none mb-3"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%">Import en cours...</div></div><button type="submit" class="btn btn-danger w-100 rounded-pill">Lancer l'import</button></form><div id="importResult" class="mt-3"></div></div></div></div>
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-csv"></i> Importer des doctorants</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="csvUploadForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="csvFile" class="form-label">Fichier CSV (UTF-8, séparateur tabulation)</label>
+                            <input type="file" class="form-control" id="csvFile" name="file" accept=".csv,.txt" required>
+                            <div class="form-text small">Colonnes : id, last_name, first_name, email, telephone, faculte, laboratoire, doctorale, these, startup, secteur, impact, problematique, solution, date_start, date_end, maturation, interet, competences, domaine_recherche, motscles, publication, publication_faire, souhait, cv.</div>
+                        </div>
+                        <div id="importProgress" class="progress d-none mb-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%">Import en cours...</div>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100 rounded-pill">Lancer l'import</button>
+                    </form>
+                    <div id="importResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <jsp:include page="fragments/footer.jsp" />
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Chargement des totaux (Doctorants / Thèses)
     fetch('/api/statistiques/globales')
         .then(res => res.json())
         .then(data => {
             document.getElementById('totalDoc').innerText = data.totalDoctorants;
             document.getElementById('totalTheses').innerText = data.totalTheses;
-            new Chart(document.getElementById('chartFacultes'), { type: 'pie', data: { labels: Object.keys(data.statsFacultes), datasets: [{ data: Object.values(data.statsFacultes), backgroundColor: ['#0d6efd','#198754','#ffc107','#dc3545','#6f42c1'] }] } });
-            const labos = data.statsLaboratoires || {};
-            new Chart(document.getElementById('chartLabos'), { type: 'bar', data: { labels: Object.keys(labos), datasets: [{ label: 'Doctorants', data: Object.values(labos), backgroundColor: '#0d6efd', borderRadius: 8 }] } });
-            new Chart(document.getElementById('chartSecteurs'), { type: 'pie', data: { labels: Object.keys(data.statsSecteurs), datasets: [{ data: Object.values(data.statsSecteurs), backgroundColor: ['#20c997','#fd7e14','#0d6efd'] }] } });
-            new Chart(document.getElementById('chartThesesParDoctorant'), { type: 'bar', data: { labels: Object.keys(data.thesesParDoctorant), datasets: [{ label: 'Thèses', data: Object.values(data.thesesParDoctorant), backgroundColor: '#fd7e14', borderRadius: 8 }] } });
+        })
+        .catch(err => console.error('Erreur chargement totaux:', err));
+
+    // Gestion de l’import CSV (identique)
+    const form = document.getElementById('csvUploadForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const file = document.getElementById('csvFile').files[0];
+            if (!file) {
+                document.getElementById('importResult').innerHTML = '<div class="alert alert-warning">Veuillez sélectionner un fichier.</div>';
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', file);
+            const progressDiv = document.getElementById('importProgress');
+            progressDiv.classList.remove('d-none');
+            fetch('/admin/import-csv', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    progressDiv.classList.add('d-none');
+                    const msg = data.message || data.error;
+                    const type = data.message ? 'success' : 'danger';
+                    document.getElementById('importResult').innerHTML = `<div class="alert alert-${type} alert-dismissible fade show">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+                    if (data.message) setTimeout(() => location.reload(), 2000);
+                })
+                .catch(err => {
+                    progressDiv.classList.add('d-none');
+                    document.getElementById('importResult').innerHTML = '<div class="alert alert-danger">Erreur réseau : ' + err.message + '</div>';
+                });
         });
-    document.getElementById('csvUploadForm')?.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const file = document.getElementById('csvFile').files[0];
-        if (!file) return;
-        const formData = new FormData(); formData.append('file', file);
-        document.getElementById('importProgress').classList.remove('d-none');
-        fetch('/admin/import-csv', { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(data => {
-                document.getElementById('importProgress').classList.add('d-none');
-                const msg = data.message || data.error;
-                const type = data.message ? 'success' : 'danger';
-                document.getElementById('importResult').innerHTML = `<div class="alert alert-${type} alert-dismissible fade show">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
-                if (data.message) setTimeout(() => location.reload(), 2000);
-            })
-            .catch(err => { document.getElementById('importProgress').classList.add('d-none'); document.getElementById('importResult').innerHTML = '<div class="alert alert-danger">Erreur réseau</div>'; });
-    });
+    }
 </script>
 </body>
 </html>

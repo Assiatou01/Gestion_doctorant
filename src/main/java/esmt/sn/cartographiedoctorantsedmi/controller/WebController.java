@@ -260,4 +260,9 @@ public class WebController {
         doctorantRepository.deleteById(id);
         return "redirect:/doctorants";
     }
+
+    @GetMapping("/statistiques")
+    public String statistiques() {
+        return "statistiques";
+    }
 }

@@ -1,5 +1,7 @@
 package esmt.sn.cartographiedoctorantsedmi.service;
 
+import esmt.sn.cartographiedoctorantsedmi.entity.Competence;
+import esmt.sn.cartographiedoctorantsedmi.entity.DomaineRecherche;
 import esmt.sn.cartographiedoctorantsedmi.entity.These;
 import esmt.sn.cartographiedoctorantsedmi.repository.DoctorantRepository;
 import esmt.sn.cartographiedoctorantsedmi.repository.TheseRepository;
@@ -53,5 +55,17 @@ public class StatistiquesService {
                 "statsSecteurs", getStatsSecteurs(),
                 "thesesParDoctorant", getThesesParDoctorant()
         );
+    }
+
+    public Map<String, Long> getStatsCompetences() {
+        return doctorantRepository.findAll().stream()
+                .flatMap(d -> d.getCompetences().stream())
+                .collect(Collectors.groupingBy(Competence::getNomCompetence, Collectors.counting()));
+    }
+
+    public Map<String, Long> getStatsDomainesRecherche() {
+        return doctorantRepository.findAll().stream()
+                .flatMap(d -> d.getDomainesRecherche().stream())
+                .collect(Collectors.groupingBy(DomaineRecherche::getDomaine, Collectors.counting()));
     }
 }

@@ -1,10 +1,15 @@
 package esmt.sn.cartographiedoctorantsedmi.service;
 
+import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 import esmt.sn.cartographiedoctorantsedmi.entity.*;
 import esmt.sn.cartographiedoctorantsedmi.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -14,6 +19,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,121 +35,164 @@ public class CsvImportService {
     private final DomaineRechercheRepository domaineRechercheRepository;
     private final PublicationRepository publicationRepository;
 
-    @Transactional
+    // Méthode publique – non transactionnelle pour éviter qu'une erreur annule tout
     public int importDoctorantsFromCsv(MultipartFile file) throws Exception {
-        List<String[]> records = parseCsvManual(file);
+        List<Map<String, String>> records = parseCsvWithOpenCsv(file);
         System.out.println("Nombre d'enregistrements trouvés : " + records.size());
         int count = 0;
-        for (String[] columns : records) {
-            if (columns.length < 15) {
-                System.err.println("Ligne ignorée : nombre de colonnes = " + columns.length);
-                continue;
-            }
+        int errored = 0;
+        for (Map<String, String> row : records) {
             try {
-                Doctorant doc = createDoctorant(columns);
-                doctorantRepository.save(doc);
+                importSingleDoctorant(row);
                 count++;
-                System.out.println("✅ Doctorant importé : " + doc.getFirstName() + " " + doc.getLastName());
             } catch (Exception e) {
-                System.err.println("❌ Erreur sur une ligne : " + e.getMessage());
+                errored++;
+                System.err.println("❌ Erreur sur une ligne (row #" + (count+errored+1) + ") : " + e.getMessage());
                 e.printStackTrace();
             }
         }
+        System.out.println("Import terminé : " + count + " doctorants importés, " + errored + " échec(s).");
         return count;
     }
 
-    /**
-     * Parse un CSV avec tabulation comme séparateur, en gérant les retours à la ligne dans les champs.
-     * Chaque enregistrement commence par un chiffre (id) suivi d'une tabulation.
-     */
-    private List<String[]> parseCsvManual(MultipartFile file) throws Exception {
-        List<String[]> records = new ArrayList<>();
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                lines.add(line);
-            }
+    // Chaque doctorant est importé dans une transaction séparée (rollback uniquement pour cette ligne)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void importSingleDoctorant(Map<String, String> row) throws Exception {
+        Doctorant doc = createDoctorantFromMap(row);
+        if (doc.getLastName() != null && !doc.getLastName().isEmpty()) {
+            doctorantRepository.save(doc);
+            System.out.println("✅ Doctorant importé : " + doc.getFirstName() + " " + doc.getLastName());
+        } else {
+            throw new IllegalArgumentException("Nom manquant");
         }
-        if (lines.size() < 2) return records; // au moins en-tête + 1 donnée
-
-        // On ignore la première ligne (en-tête)
-        StringBuilder currentRecord = new StringBuilder();
-        for (int i = 1; i < lines.size(); i++) {
-            String line = lines.get(i);
-            // Détection d'un nouvel enregistrement : la ligne commence par un chiffre (id)
-            if (line.length() > 0 && Character.isDigit(line.charAt(0))) {
-                if (currentRecord.length() > 0) {
-                    // Sauvegarder l'enregistrement précédent
-                    String[] columns = currentRecord.toString().split("\t", -1);
-                    records.add(columns);
-                    currentRecord.setLength(0);
-                }
-                currentRecord.append(line);
-            } else {
-                // Ligne faisant partie du champ précédent (multiligne)
-                if (currentRecord.length() > 0) currentRecord.append("\n");
-                currentRecord.append(line);
-            }
-        }
-        // Dernier enregistrement
-        if (currentRecord.length() > 0) {
-            String[] columns = currentRecord.toString().split("\t", -1);
-            records.add(columns);
-        }
-
-        System.out.println("[CSV] " + records.size() + " enregistrements détectés");
-        return records;
     }
 
-    private Doctorant createDoctorant(String[] cols) {
+    // -------------------- Parsing OpenCSV --------------------
+    private List<Map<String, String>> parseCsvWithOpenCsv(MultipartFile file) throws Exception {
+        // Lire toutes les lignes une seule fois
+        List<String> allLines;
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+            allLines = br.lines().collect(Collectors.toList());
+        }
+        if (allLines.isEmpty()) return Collections.emptyList();
+
+        char delimiter = detectDelimiter(allLines.get(0));
+
+        // Réouverture du flux pour OpenCSV
+        try (InputStreamReader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8);
+             CSVReader csvReader = new CSVReaderBuilder(reader)
+                     .withCSVParser(new CSVParserBuilder().withSeparator(delimiter).build())
+                     .build()) {
+
+            String[] headers = csvReader.readNext();
+            if (headers == null) return Collections.emptyList();
+            List<String> normalizedHeaders = Arrays.stream(headers)
+                    .map(this::normalizeHeader)
+                    .collect(Collectors.toList());
+
+            List<Map<String, String>> records = new ArrayList<>();
+            String[] line;
+            while ((line = csvReader.readNext()) != null) {
+                Map<String, String> row = new HashMap<>();
+                for (int i = 0; i < normalizedHeaders.size() && i < line.length; i++) {
+                    row.put(normalizedHeaders.get(i), line[i]);
+                }
+                records.add(row);
+            }
+            return records;
+        }
+    }
+
+    private char detectDelimiter(String line) {
+        int commas = line.length() - line.replace(",", "").length();
+        int semicolons = line.length() - line.replace(";", "").length();
+        int tabs = line.length() - line.replace("\t", "").length();
+
+        if (tabs >= commas && tabs >= semicolons) return '\t';
+        if (semicolons >= commas) return ';';
+        return ',';
+    }
+
+    private String normalizeHeader(String header) {
+        if (header == null) return "";
+        return header.trim().toLowerCase(Locale.ROOT)
+                .replaceAll("[éèêë]", "e")
+                .replaceAll("[àâä]", "a")
+                .replaceAll("[îï]", "i")
+                .replaceAll("[ôö]", "o")
+                .replaceAll("[ùûü]", "u")
+                .replaceAll("[^a-z0-9_]", ""); // conserve les underscores
+    }
+
+    private String getFromRow(Map<String, String> row, String... possibleKeys) {
+        for (String key : possibleKeys) {
+            String val = row.get(key);
+            if (val != null && !val.trim().isEmpty()) {
+                return val.trim();
+            }
+        }
+        return null;
+    }
+
+    // -------------------- Construction des entités --------------------
+    private Doctorant createDoctorantFromMap(Map<String, String> row) throws Exception {
         Doctorant doc = new Doctorant();
-        doc.setLastName(getSafe(cols, 1));
-        doc.setFirstName(getSafe(cols, 2));
-        doc.setEmail(getSafe(cols, 3));
-        doc.setTelephone(getSafe(cols, 4));
-        doc.setFaculte(findOrCreateFaculte(getSafe(cols, 5)));
-        doc.setLaboratoire(findOrCreateLaboratoire(getSafe(cols, 6)));
-        doc.setEcoleDoctorale(findOrCreateEcoleDoctorale(getSafe(cols, 7)));
+        doc.setLastName(getFromRow(row, "nom", "lastname", "last_name", "nomdoctorant"));
+        doc.setFirstName(getFromRow(row, "prenom", "firstname", "first_name", "prenomdoctorant", "prenoms"));
+        doc.setEmail(getFromRow(row, "email", "mail", "courriel"));
+        doc.setTelephone(getFromRow(row, "telephone", "tel", "phone"));
 
+        doc.setFaculte(findOrCreateFaculte(getFromRow(row, "faculte", "fac", "etablissement", "institut")));
+        doc.setLaboratoire(findOrCreateLaboratoire(getFromRow(row, "laboratoire", "labo", "lab")));
+        doc.setEcoleDoctorale(findOrCreateEcoleDoctorale(getFromRow(row, "ecoledoctorale", "ecole", "doctorale", "ed")));
+
+        // Thèse
         These these = new These();
-        these.setIntitule(getSafe(cols, 8));
-        these.setSecteur(getSafe(cols, 10));
-        these.setImpact(getSafe(cols, 11));
-        these.setProblematique(getSafe(cols, 12));
-        these.setSolution(getSafe(cols, 13));
-        if (cols.length > 20 && !isNullOrEmpty(getSafe(cols, 20)))
-            handleMotsCles(getSafe(cols, 20), these);
-        these = theseRepository.save(these);
-        doc.getTheses().add(these);
-        these.getDoctorants().add(doc);
+        String intitule = getFromRow(row, "these", "intitule", "titre", "sujet", "titrethese");
+        these.setIntitule(intitule);
+        these.setSecteur(getFromRow(row, "secteur", "domaine", "secteuractivite"));
+        these.setImpact(getFromRow(row, "impact", "impactattendu"));
+        these.setProblematique(getFromRow(row, "problematique", "probleme"));
+        these.setSolution(getFromRow(row, "solution", "solutionproposee"));
 
-        doc.setDateStart(parseDate(getSafe(cols, 14)));
-        doc.setDateEnd(parseDate(getSafe(cols, 15)));
-        doc.setMaturation(getSafe(cols, 16));
-        doc.setInteret(getSafe(cols, 17));
+        String motsCles = getFromRow(row, "motscles", "motcles", "keywords");
+        if (motsCles != null) handleMotsCles(motsCles, these);
 
-        if (cols.length > 18) handleCompetences(getSafe(cols, 18), doc);
-        if (cols.length > 19) handleDomaines(getSafe(cols, 19), doc);
-        if (cols.length > 21) handlePublications(getSafe(cols, 21), doc);
-        if (cols.length > 22 && !isNullOrEmpty(getSafe(cols, 22)))
-            doc.setPublicationFaire("OUI".equalsIgnoreCase(getSafe(cols, 22)));
-        if (cols.length > 23) doc.setSouhait(getSafe(cols, 23));
-        if (cols.length > 24) doc.setCv(getSafe(cols, 24));
+        if (these.getIntitule() != null && !these.getIntitule().isEmpty()) {
+            these = theseRepository.save(these);
+            doc.getTheses().add(these);
+            these.getDoctorants().add(doc);
+        } else {
+            System.err.println("⚠️ Thèse sans intitulé, ignorée pour " + doc.getEmail());
+        }
 
-        if (cols.length > 9 && !isNullOrEmpty(getSafe(cols, 9))) {
-            Startup startup = new Startup(null, getSafe(cols, 9), doc);
+        doc.setDateStart(parseDate(getFromRow(row, "datestart", "datedebut", "debut", "debutthese")));
+        doc.setDateEnd(parseDate(getFromRow(row, "dateend", "datefin", "fin", "finthese")));
+        doc.setMaturation(getFromRow(row, "maturation", "niveau", "statut"));
+        doc.setInteret(getFromRow(row, "interet", "centresdinteret", "interets"));
+        doc.setSouhait(getFromRow(row, "souhait", "insertion", "souhaitdinsertion"));
+        doc.setCv(getFromRow(row, "cv", "liencv", "drive"));
+
+        handleCompetences(getFromRow(row, "competences", "competence", "skills"), doc);
+        handleDomaines(getFromRow(row, "domainerecherche", "domaines", "researchdomain"), doc);
+        handlePublications(getFromRow(row, "publication", "publications", "articles"), doc);
+
+        String pubFaire = getFromRow(row, "publicationfaire", "apublie", "haspublications");
+        if (pubFaire != null) {
+            doc.setPublicationFaire(pubFaire.equalsIgnoreCase("oui") || pubFaire.equalsIgnoreCase("yes") ||
+                    pubFaire.equalsIgnoreCase("true") || pubFaire.equals("1") || pubFaire.equalsIgnoreCase("vrai"));
+        }
+
+        String startupName = getFromRow(row, "startup", "entreprise", "projetstartup");
+        if (startupName != null && !startupName.isEmpty()) {
+            Startup startup = new Startup(null, startupName, doc);
             doc.getStartups().add(startup);
         }
+
         return doc;
     }
 
-    // ==================== MÉTHODES UTILITAIRES ====================
-    private String getSafe(String[] arr, int idx) {
-        return arr.length > idx ? arr[idx].trim() : null;
-    }
-
+    // -------------------- Méthodes utilitaires (à garder) --------------------
     private boolean isNullOrEmpty(String s) {
         return s == null || s.trim().isEmpty();
     }
@@ -213,8 +262,10 @@ public class CsvImportService {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .forEach(titre -> {
-                    Publication pub = publicationRepository.save(new Publication(null, titre));
-                    doc.getPublications().add(pub);
+                    if (!titre.isEmpty()) {
+                        Publication pub = publicationRepository.save(new Publication(null, titre));
+                        doc.getPublications().add(pub);
+                    }
                 });
     }
 

@@ -1,4 +1,6 @@
 <%@ page pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+
 <style>
     .sidebar { width: 260px; position: fixed; top: 0; left: 0; height: 100vh; background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%); color: white; z-index: 1000; transition: all 0.3s; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
     .sidebar .nav-link { color: rgba(255,255,255,0.85); padding: 12px 20px; border-radius: 30px; margin: 5px 10px; transition: all 0.2s; }
@@ -11,7 +13,7 @@
     .main-content { margin-left: 260px; padding: 20px 30px; transition: all 0.3s; }
     @media (max-width: 768px) {
         .sidebar { transform: translateX(-100%); width: 240px; }
-        .main-content { margin-left: 0; padding: 15px; }
+        .main-content { margin-left: 260px; padding: 20px 30px; padding-top: 90px; transition: all 0.3s; }
         .sidebar.active { transform: translateX(0); }
         .toggle-btn { display: block; position: fixed; top: 15px; left: 15px; z-index: 1100; background: #0d6efd; color: white; border: none; border-radius: 8px; padding: 8px 12px; }
     }
@@ -39,6 +41,7 @@
             <a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a>
             <a class="nav-link" href="/doctorants"><i class="fas fa-users"></i> Doctorants</a>
             <a class="nav-link" href="/theses"><i class="fas fa-book-open"></i> Thèses</a>
+            <a class="nav-link" href="/statistiques"><i class="fas fa-chart-line"></i> Statistiques</a>
             <c:if test="${sessionScope.user.role.name() == 'ADMINISTRATEUR'}">
                 <a class="nav-link" href="/admin/domaines"><i class="fas fa-tags"></i> Domaines</a>
                 <a class="nav-link" href="/admin/utilisateurs"><i class="fas fa-users-cog"></i> Utilisateurs</a>

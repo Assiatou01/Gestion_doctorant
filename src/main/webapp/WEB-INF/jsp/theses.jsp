@@ -8,9 +8,43 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .thesis-card { border-left: 5px solid #0d6efd; transition: all 0.2s; background: white; }
-        .thesis-card:hover { background-color: #f1f9ff; }
-        .accordion-button:not(.collapsed) { background-color: #e7f1ff; color: #0d6efd; }
+        :root {
+            --primary: #0d6efd;
+            --primary-dark: #0b5ed7;
+            --transition: all 0.2s ease-in-out;
+            --card-bg: #ffffff;
+            --bg-light: #f8f9fc;
+            --shadow-md: 0 0.5rem 1rem rgba(0,0,0,0.08);
+        }
+        body {
+            background-color: #f8f9fc;
+        }
+        .thesis-card {
+            border-left: 6px solid var(--primary);
+            transition: var(--transition);
+            background: var(--card-bg);
+        }
+        .thesis-card:hover {
+            background-color: var(--bg-light);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md) !important;
+        }
+        .accordion-button:not(.collapsed) {
+            background-color: rgba(13, 110, 253, 0.05);
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+        .accordion-button:focus {
+            box-shadow: none;
+        }
+        .btn-outline-danger, .btn-outline-danger:hover {
+            border-radius: 2rem;
+        }
+        .text-primary { color: #0d6efd !important; }
+        .badge.bg-primary { background-color: #0d6efd !important; }
+        .alert-info { background-color: #e7f3ff; border-color: #b8d9ff; }
+        .btn-primary { background-color: #0d6efd; border-color: #0d6efd; }
+        .btn-primary:hover { background-color: #0b5ed7; border-color: #0b5ed7; }
     </style>
 </head>
 <body>
@@ -59,9 +93,18 @@
                         <div class="accordion-body bg-white pt-0">
                             <hr class="mt-0">
                             <div class="row g-4">
-                                <div class="col-12"><h6 class="fw-bold text-secondary"><i class="fas fa-question-circle me-2"></i>Problématique</h6><p class="text-dark">${t.problematique}</p></div>
-                                <div class="col-md-6 border-end"><h6 class="fw-bold text-warning"><i class="fas fa-lightbulb me-2"></i>Solution proposée</h6><p class="text-secondary">${t.solution}</p></div>
-                                <div class="col-md-6"><h6 class="fw-bold text-success"><i class="fas fa-chart-line me-2"></i>Impact attendu</h6><p class="text-secondary">${t.impact}</p></div>
+                                <div class="col-12">
+                                    <h6 class="fw-bold text-secondary"><i class="fas fa-question-circle me-2"></i>Problématique</h6>
+                                    <p class="text-dark">${t.problematique}</p>
+                                </div>
+                                <div class="col-md-6 border-end">
+                                    <h6 class="fw-bold text-warning"><i class="fas fa-lightbulb me-2"></i>Solution proposée</h6>
+                                    <p class="text-secondary">${t.solution}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-success"><i class="fas fa-chart-line me-2"></i>Impact attendu</h6>
+                                    <p class="text-secondary">${t.impact}</p>
+                                </div>
                             </div>
                             <div class="d-flex justify-content-end mt-4 gap-2">
                                 <c:if test="${not isCandidat}">
@@ -80,7 +123,9 @@
         </div>
 
         <c:if test="${empty listeTheses}">
-            <div class="alert alert-warning text-center shadow-sm rounded-pill"><i class="fas fa-inbox fa-2x d-block mb-2"></i>Aucune thèse trouvée.</div>
+            <div class="alert alert-warning text-center shadow-sm rounded-pill">
+                <i class="fas fa-inbox fa-2x d-block mb-2"></i>Aucune thèse trouvée.
+            </div>
         </c:if>
     </div>
 </div>

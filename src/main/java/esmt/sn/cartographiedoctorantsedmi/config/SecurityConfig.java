@@ -22,12 +22,26 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                                .requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
-                                // Pour le test, on autorise tout (à commenter après vérification)
-                                .requestMatchers("/these/modifier-moi/**", "/these/supprimer-moi/**", "/doctorant/modifier/**", "/doctorant/upload-cv/**").hasRole("CANDIDAT")
-                                .requestMatchers("/doctorant/mes-theses", "/doctorant/details/**", "/these/candidat/**").hasAnyRole("CANDIDAT", "GESTIONNAIRE", "ADMINISTRATEUR")
-                                .requestMatchers("/theses", "/these/nouveau", "/these/modifier/**", "/these/supprimer/**", "/dashboard/**").hasAnyRole("GESTIONNAIRE", "ADMINISTRATEUR")
-                                .anyRequest().permitAll()
+                        // Pages publiques
+                        .requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+
+                        // URLs pour le candidat (ses pages personnelles)
+                        .requestMatchers("/doctorant/mes-theses", "/these/candidat/**",
+                                "/these/modifier-moi/**", "/these/supprimer-moi/**").hasRole("CANDIDAT")
+
+                        // Modification et upload de CV (candidat, gestionnaire et admin)
+                        // – le contrôleur vérifiera que le candidat ne modifie que son propre profil
+                        .requestMatchers("/doctorant/modifier/**", "/doctorant/upload-cv/**").hasAnyRole("CANDIDAT", "GESTIONNAIRE", "ADMINISTRATEUR")
+
+                        // Pages de gestion (dashboard, listes, thèses, etc.) – réservés aux gestionnaires et admins
+                        .requestMatchers("/dashboard/**", "/doctorants", "/theses", "/these/**",
+                                "/api/statistiques/**").hasAnyRole("GESTIONNAIRE", "ADMINISTRATEUR")
+
+                        // Administration (domaines, utilisateurs) – réservée à l'admin
+                        .requestMatchers("/admin/**").hasRole("ADMINISTRATEUR")
+
+                        // Toute autre requête nécessite une authentification (pour la sécurité)
+                        .anyRequest().permitAll()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
