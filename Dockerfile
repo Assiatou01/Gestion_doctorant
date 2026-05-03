@@ -1,23 +1,19 @@
-# Étape 1 : Construction de l'application (Build) avec Maven et Java 17
+# Étape 1 : Construction du WAR
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
-
-# Copier le fichier pom.xml et les sources
 COPY pom.xml .
 COPY src ./src
-
-# Compiler le projet et créer le fichier .jar (sans lancer les tests pour aller plus vite)
 RUN mvn clean package -DskipTests
 
-# Étape 2 : Création de l'image finale allégée pour exécuter l'application
-FROM eclipse-temurin:17-jdk
-WORKDIR /app
+# Étape 2 : Image Tomcat 9 (qui sait compiler et servir les JSP)
+FROM tomcat:9-jdk17
+# Supprimer l'application par défaut
+RUN rm -rf /usr/local/tomcat/webapps/ROOT
+# Copier le WAR généré en tant que ROOT.war (à la racine)
+COPY --from=build /app/target/*.war /usr/local/tomcat/webapps/ROOT.war
 
-# Copier le fichier .war généré depuis l'étape 1
-COPY --from=build /app/target/*.war app.war
+# Exposer le port 8080 (Tomcat)
+EXPOSE 8080
 
-# Exposer le port par défaut que Render utilise
-EXPOSE 10000
-
-# Commande de démarrage de l'application
-ENTRYPOINT ["java", "-jar", "app.war"]
+# Démarrer Tomcat
+CMD ["catalina.sh", "run"]
