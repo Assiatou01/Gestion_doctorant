@@ -10,7 +10,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Étape 2 : Création de l'image finale allégée pour exécuter l'application
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
 # Copier le fichier .war généré depuis l'étape 1
