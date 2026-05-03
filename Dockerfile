@@ -13,11 +13,11 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-# Copier le fichier .jar généré depuis l'étape 1
-COPY --from=build /app/target/*.jar app.jar
+# Copier le fichier .war généré depuis l'étape 1
+COPY --from=build /app/target/*.war app.war
 
 # Exposer le port par défaut que Render utilise
 EXPOSE 10000
 
 # Commande de démarrage de l'application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.war"]

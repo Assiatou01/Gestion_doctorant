@@ -13,6 +13,7 @@
     <groupId>esmt.sn.cartographiedoctorantsedmi</groupId>
     <artifactId>cartographie-doctorants-edmi</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>war</packaging>
     <name>cartographie-doctorants-edmi</name>
     <description>Plateforme de Cartographie des Projets de thèse doctorants</description>
 
