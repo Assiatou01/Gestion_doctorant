@@ -18,7 +18,19 @@
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="text-primary"><i class="fas fa-users me-2"></i>Annuaire des Doctorants</h2>
-            <a href="/doctorant/nouveau" class="btn btn-primary rounded-pill px-4"><i class="fas fa-plus-circle me-2"></i>Nouveau Doctorant</a>
+            <div class="d-flex gap-2">
+                <form method="get" action="/doctorants" class="d-flex gap-2">
+                    <select name="laboratoireId" class="form-select rounded-pill" onchange="this.form.submit()">
+                        <option value="">Tous les laboratoires</option>
+                        <c:forEach items="${laboratoires}" var="lab">
+                            <option value="${lab.id}" ${selectedLaboratoireId == lab.id ? 'selected' : ''}>${lab.nom}</option>
+                        </c:forEach>
+                    </select>
+                    <a href="/doctorant/nouveau" class="btn btn-primary rounded-pill px-4">
+                        <i class="fas fa-plus-circle me-2"></i>Nouveau Doctorant
+                    </a>
+                </form>
+            </div>
         </div>
 
         <div class="card card-custom p-2">

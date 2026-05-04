@@ -2,6 +2,8 @@ package esmt.sn.cartographiedoctorantsedmi.controller;
 
 import esmt.sn.cartographiedoctorantsedmi.config.CustomUserDetails;
 import esmt.sn.cartographiedoctorantsedmi.entity.Doctorant;
+import esmt.sn.cartographiedoctorantsedmi.entity.Faculte;
+import esmt.sn.cartographiedoctorantsedmi.entity.Laboratoire;
 import esmt.sn.cartographiedoctorantsedmi.entity.These;
 import esmt.sn.cartographiedoctorantsedmi.repository.DoctorantRepository;
 import esmt.sn.cartographiedoctorantsedmi.repository.FaculteRepository;
@@ -193,8 +195,31 @@ public class WebController {
     }
 
     // ========== Sauvegarde doctorant ==========
+//    @PostMapping("/doctorant/save")
+//    public String saveDoctorant(Doctorant doctorant) {
+//        doctorantRepository.save(doctorant);
+//        return "redirect:/doctorants";
+//    }
+
     @PostMapping("/doctorant/save")
-    public String saveDoctorant(Doctorant doctorant) {
+    public String saveDoctorant(@ModelAttribute Doctorant doctorant,
+                                @RequestParam(value = "faculte.id", required = false) Long faculteId,
+                                @RequestParam(value = "laboratoire.id", required = false) Long laboratoireId) {
+
+        if (faculteId != null) {
+            Faculte faculte = faculteRepository.findById(faculteId).orElse(null);
+            doctorant.setFaculte(faculte);
+        } else {
+            doctorant.setFaculte(null);
+        }
+
+        if (laboratoireId != null) {
+            Laboratoire labo = laboratoireRepository.findById(laboratoireId).orElse(null);
+            doctorant.setLaboratoire(labo);
+        } else {
+            doctorant.setLaboratoire(null);
+        }
+
         doctorantRepository.save(doctorant);
         return "redirect:/doctorants";
     }
@@ -238,12 +263,32 @@ public class WebController {
     }
 
     // ========== Liste des doctorants (accessible à gestionnaire/admin uniquement) ==========
+//    @GetMapping("/doctorants")
+//    public String showDoctorantsList(Model model, Authentication authentication) {
+//        if (authentication != null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
+//            return "redirect:/doctorant/mes-theses?error=unauthorized";
+//        }
+//        model.addAttribute("listeDoctorants", doctorantRepository.findAll());
+//        return "doctorants";
+//    }
     @GetMapping("/doctorants")
-    public String showDoctorantsList(Model model, Authentication authentication) {
-        if (authentication != null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
+    public String showDoctorantsList(@RequestParam(required = false) Long laboratoireId,
+                                     Model model, Authentication authentication) {
+        if (authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
             return "redirect:/doctorant/mes-theses?error=unauthorized";
         }
-        model.addAttribute("listeDoctorants", doctorantRepository.findAll());
+
+        List<Doctorant> doctorants;
+        if (laboratoireId != null && laboratoireId > 0) {
+            doctorants = doctorantRepository.findByLaboratoireId(laboratoireId);
+        } else {
+            doctorants = doctorantRepository.findAll();
+        }
+
+        model.addAttribute("listeDoctorants", doctorants);
+        model.addAttribute("laboratoires", laboratoireRepository.findAll());
+        model.addAttribute("selectedLaboratoireId", laboratoireId);
         return "doctorants";
     }
 

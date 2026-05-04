@@ -8,10 +8,10 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 @SpringBootApplication
 public class CartographieDoctorantsEdmiApplication extends SpringBootServletInitializer {
 
-    @Override
-    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-        return application.sources(CartographieDoctorantsEdmiApplication.class);
-    }
+//    @Override
+//    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+//        return application.sources(CartographieDoctorantsEdmiApplication.class);
+//    }
 
     public static void main(String[] args) {
         SpringApplication.run(CartographieDoctorantsEdmiApplication.class, args);

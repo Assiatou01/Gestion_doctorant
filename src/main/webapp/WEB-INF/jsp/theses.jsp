@@ -65,12 +65,12 @@
             </c:if>
         </div>
 
-        <c:if test="${isCandidat}">
-            <div class="alert alert-info alert-dismissible fade show shadow-sm rounded-pill">
-                <i class="fas fa-info-circle me-2"></i> Vous ne voyez que vos propres thèses.
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        </c:if>
+<%--        <c:if test="${isCandidat}">--%>
+<%--            <div class="alert alert-info alert-dismissible fade show shadow-sm rounded-pill">--%>
+<%--                <i class="fas fa-info-circle me-2"></i> Vous ne voyez que vos propres thèses.--%>
+<%--                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>--%>
+<%--            </div>--%>
+<%--        </c:if>--%>
 
         <div class="accordion shadow-sm" id="accordionTheses">
             <c:forEach items="${listeTheses}" var="t">
@@ -80,11 +80,16 @@
                             <div class="w-100">
                                 <div class="mb-2">
                                     <span class="badge bg-primary me-2 text-uppercase rounded-pill">${t.secteur}</span>
-                                    <c:forEach items="${t.motsCles}" var="m"><span class="badge border text-secondary bg-white rounded-pill">#${m.mot}</span></c:forEach>
+                                    <c:forEach items="${t.motsCles}" var="m">
+                                        <span class="badge border text-secondary bg-white rounded-pill">#${m.mot}</span>
+                                    </c:forEach>
                                 </div>
                                 <div class="h5 fw-bold text-dark">${t.intitule}</div>
-                                <div class="text-muted small"><i class="fas fa-user-graduate me-1"></i> <strong>Doctorant(s) :</strong>
-                                    <c:forEach items="${t.doctorants}" var="d" varStatus="loop"><span class="text-primary">${d.firstName} ${d.lastName}</span><c:if test="${not loop.last}">, </c:if></c:forEach>
+                                <div class="text-muted small">
+                                    <i class="fas fa-user-graduate me-1"></i> <strong>Doctorant(s) :</strong>
+                                    <c:forEach items="${t.doctorants}" var="d" varStatus="loop">
+                                        <span class="text-primary">${d.firstName} ${d.lastName}</span><c:if test="${not loop.last}">, </c:if>
+                                    </c:forEach>
                                 </div>
                             </div>
                         </button>
@@ -123,8 +128,21 @@
         </div>
 
         <c:if test="${empty listeTheses}">
-            <div class="alert alert-warning text-center shadow-sm rounded-pill">
-                <i class="fas fa-inbox fa-2x d-block mb-2"></i>Aucune thèse trouvée.
+            <div class="text-center py-5">
+                <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Aucune thèse trouvée</h4>
+                <c:if test="${isCandidat}">
+                    <p class="mb-3">Vous n’avez pas encore déclaré de thèse.</p>
+                    <a href="/these/candidat/nouveau" class="btn btn-primary rounded-pill px-4">
+                        <i class="fas fa-plus-circle me-2"></i>Déclarer ma thèse
+                    </a>
+                </c:if>
+                <c:if test="${not isCandidat}">
+                    <p class="mb-3">Aucune thèse n’est encore enregistrée.</p>
+                    <a href="/these/nouveau" class="btn btn-primary rounded-pill px-4">
+                        <i class="fas fa-plus-circle me-2"></i>Ajouter une thèse
+                    </a>
+                </c:if>
             </div>
         </c:if>
     </div>

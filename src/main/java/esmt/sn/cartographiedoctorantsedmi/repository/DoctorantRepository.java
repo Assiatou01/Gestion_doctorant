@@ -4,7 +4,10 @@ import esmt.sn.cartographiedoctorantsedmi.entity.Doctorant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface DoctorantRepository extends JpaRepository<Doctorant, Long> {
+    List<Doctorant> findByLaboratoireId(Long laboratoireId);
 }
 

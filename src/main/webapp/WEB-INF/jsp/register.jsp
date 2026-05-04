@@ -27,14 +27,14 @@
             <div class="mb-3"><label class="form-label fw-semibold">Nom complet</label><div class="input-group"><span class="input-group-text bg-white"><i class="fas fa-user text-primary"></i></span><input type="text" name="nom" class="form-control rounded-end" required></div></div>
             <div class="mb-3"><label class="form-label fw-semibold">Email professionnel</label><div class="input-group"><span class="input-group-text bg-white"><i class="fas fa-envelope text-primary"></i></span><input type="email" name="email" class="form-control rounded-end" required></div></div>
             <div class="mb-3"><label class="form-label fw-semibold">Mot de passe</label><div class="input-group"><span class="input-group-text bg-white"><i class="fas fa-lock text-primary"></i></span><input type="password" name="password" class="form-control rounded-end" required></div></div>
-            <div class="mb-4"><label class="form-label fw-semibold">Rôle / Profil</label><div class="input-group"><span class="input-group-text bg-white"><i class="fas fa-briefcase text-primary"></i></span><select name="role" class="form-select" required><option value="" disabled selected>Choisir...</option><c:forEach items="${roles}" var="r"><option value="${r}">${r}</option></c:forEach></select></div><div class="form-text text-muted small mt-2">Le rôle <strong>ADMINISTRATEUR</strong> donne accès au Dashboard.</div></div>
+<%--            <div class="mb-4"><label class="form-label fw-semibold">Rôle / Profil</label><div class="input-group"><span class="input-group-text bg-white"><i class="fas fa-briefcase text-primary"></i></span><select name="role" class="form-select" required><option value="" disabled selected>Choisir...</option><c:forEach items="${roles}" var="r"><option value="${r}">${r}</option></c:forEach></select></div><div class="form-text text-muted small mt-2">Le rôle <strong>ADMINISTRATEUR</strong> donne accès au Dashboard.</div></div>--%>
             <button type="submit" class="btn btn-register w-100 py-2 fw-bold">S'inscrire</button>
         </form>
         <hr class="my-4">
         <div class="text-center"><p class="text-muted mb-0">Déjà inscrit ?</p><a href="/login" class="text-primary fw-bold text-decoration-none">Se connecter ici</a></div>
     </div>
     <div class="card-footer bg-light text-center py-3 border-0 rounded-bottom">
-        <small class="text-muted">Système de Cartographie Doctorants ISI</small>
+        <small class="text-muted">Système de Cartographie Doctorants EDMI</small>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

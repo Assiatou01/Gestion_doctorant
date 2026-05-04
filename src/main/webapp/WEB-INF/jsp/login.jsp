@@ -37,7 +37,7 @@
 <body>
 <div class="login-card">
     <div class="login-header">
-        <img src="${pageContext.request.contextPath}/images/logo-ucad.jpeg" alt="UCAD">
+        <img src="${pageContext.request.contextPath}/images/logo-ucad.png" alt="UCAD">
         <h3>Cartographie EDMI</h3>
         <p>École Doctorale Mathématiques et Informatique</p>
     </div>
@@ -66,7 +66,7 @@
 
         <div class="register-link"><span class="text-muted">Nouveau membre ?</span> <a href="/register" class="text-primary fw-bold text-decoration-none"> Créer un compte</a></div>
     </div>
-    <div class="text-center pb-3 small text-muted border-top pt-2 mx-3">ESMT – Master ISI</div>
+    <div class="text-center pb-3 small text-muted border-top pt-2 mx-3">UCAD – EDMI</div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

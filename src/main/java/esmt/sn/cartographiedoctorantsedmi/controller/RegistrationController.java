@@ -24,7 +24,7 @@ public class RegistrationController {
     @PostMapping("/register")
     public String registerUser(@RequestParam String email,
                                @RequestParam String password,
-                               @RequestParam Role role,
+                               @RequestParam (required = false, defaultValue = "CANDIDAT") Role role,
                                @RequestParam String nom) {
         try {
             utilisateurService.registerManualUser(email, password, role, nom);
