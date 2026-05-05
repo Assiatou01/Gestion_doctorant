@@ -259,7 +259,7 @@ public class WebController {
         return "redirect:/doctorants";
     }
 
-    // ========== Gestionnaire/admin : toutes les thèses ==========
+    // ========== Gestionnaire/admin/candidat : toutes les thèses ==========
     @GetMapping("/theses")
     public String showThesesList(Model model) {
         model.addAttribute("listeTheses", theseRepository.findAll());
