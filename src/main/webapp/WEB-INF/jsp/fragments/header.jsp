@@ -1,10 +1,10 @@
 <%@ page pageEncoding="UTF-8" %>
 <style>
     :root {
-        --header-height: 64px;
-        --shadow-sm: 0 2px 8px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
-        --border-color: #f0f0f0;
-        --danger: #e3342f;
+        --header-height: 80px;   /* augmenté de 70px à 80px */
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+        --border-color: #e9ecef;
+        --danger: #dc3545;
     }
     .navbar-custom {
         position: fixed;
@@ -23,12 +23,12 @@
         transition: left 0.3s ease;
     }
     .logo-wrapper {
-        margin-right: auto; /* pousse les éléments à droite */
+        margin-right: auto;
         display: flex;
         align-items: center;
     }
     .logo-img {
-        height: 38px;
+        height: 48px;   /* augmenté de 42px à 48px */
         width: auto;
         object-fit: contain;
         transition: transform 0.2s;
@@ -41,41 +41,30 @@
         border: none;
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 8px 16px;
+        padding: 8px 12px;
         border-radius: 40px;
-        font-weight: 500;
-        font-size: 0.85rem;
-        color: #4a5568;
+        color: #1e293b;
         text-decoration: none;
         transition: all 0.2s;
         cursor: pointer;
+        font-size: 1.2rem;
     }
     .logout-btn i {
-        font-size: 1rem;
-        color: #e53e3e;
+        color: #0d6efd;
     }
     .logout-btn:hover {
-        background: #fff5f5;
-        color: #e53e3e;
+        background: #f8f9fc;
     }
     .logout-btn:hover i {
-        color: #e53e3e;
+        color: #0b5ed7;
     }
-
     @media (max-width: 768px) {
         .navbar-custom {
             left: 0;
             padding: 0 1rem;
         }
         .logo-img {
-            height: 32px;
-        }
-        .logout-btn span {
-            display: none; /* sur mobile, cacher le texte "Déconnexion", ne garder que l'icône */
-        }
-        .logout-btn {
-            padding: 6px 12px;
+            height: 40px;   /* adapté pour mobile */
         }
     }
 </style>
@@ -83,10 +72,9 @@
 <nav class="navbar-custom">
     <div class="logo-wrapper">
         <img src="${pageContext.request.contextPath}/images/blason-ucad.png" alt="UCAD" class="logo-img"
-             onerror="this.src='https://via.placeholder.com/38?text=UCAD'">
+             onerror="this.src='https://via.placeholder.com/48?text=UCAD'">
     </div>
-    <a href="/logout" class="logout-btn">
+    <a href="/logout" class="logout-btn" title="Déconnexion">
         <i class="fas fa-sign-out-alt"></i>
-        <span>Déconnexion</span>
     </a>
 </nav>

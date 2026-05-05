@@ -49,7 +49,7 @@
         <form action="/perform_login" method="post">
             <div class="mb-3">
                 <label class="form-label fw-semibold">Adresse email</label>
-                <div class="input-group"><span class="input-group-text"><i class="fas fa-envelope"></i></span><input type="email" name="username" class="form-control" placeholder="exemple@esmt.sn" required></div>
+                <div class="input-group"><span class="input-group-text"><i class="fas fa-envelope"></i></span><input type="email" name="username" class="form-control" placeholder="exemple@edmi.sn" required></div>
             </div>
             <div class="mb-3">
                 <label class="form-label fw-semibold">Mot de passe</label>
@@ -66,7 +66,8 @@
 
         <div class="register-link"><span class="text-muted">Nouveau membre ?</span> <a href="/register" class="text-primary fw-bold text-decoration-none"> Créer un compte</a></div>
     </div>
-    <div class="text-center pb-3 small text-muted border-top pt-2 mx-3">UCAD – EDMI</div>
+    <div class="text-center pb-3 small text-muted border-top pt-2 mx-3">UCAD – EDMI
+    </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

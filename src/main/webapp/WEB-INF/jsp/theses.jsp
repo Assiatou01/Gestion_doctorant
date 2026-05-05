@@ -7,44 +7,12 @@
     <title>Annuaire des Thèses - EDMI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <jsp:include page="fragments/styles.jsp" />
     <style>
-        :root {
-            --primary: #0d6efd;
-            --primary-dark: #0b5ed7;
-            --transition: all 0.2s ease-in-out;
-            --card-bg: #ffffff;
-            --bg-light: #f8f9fc;
-            --shadow-md: 0 0.5rem 1rem rgba(0,0,0,0.08);
-        }
-        body {
-            background-color: #f8f9fc;
-        }
-        .thesis-card {
-            border-left: 6px solid var(--primary);
-            transition: var(--transition);
-            background: var(--card-bg);
-        }
-        .thesis-card:hover {
-            background-color: var(--bg-light);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-md) !important;
-        }
-        .accordion-button:not(.collapsed) {
-            background-color: rgba(13, 110, 253, 0.05);
-            color: var(--primary-dark);
-            font-weight: 600;
-        }
-        .accordion-button:focus {
-            box-shadow: none;
-        }
-        .btn-outline-danger, .btn-outline-danger:hover {
-            border-radius: 2rem;
-        }
-        .text-primary { color: #0d6efd !important; }
-        .badge.bg-primary { background-color: #0d6efd !important; }
-        .alert-info { background-color: #e7f3ff; border-color: #b8d9ff; }
-        .btn-primary { background-color: #0d6efd; border-color: #0d6efd; }
-        .btn-primary:hover { background-color: #0b5ed7; border-color: #0b5ed7; }
+        .thesis-card { border-left: 4px solid #0d6efd; transition: 0.2s; }
+        .thesis-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .accordion-button:not(.collapsed) { background-color: #f8f9fc; color: #0d6efd; font-weight: 600; }
+        .accordion-button:focus { box-shadow: none; }
     </style>
 </head>
 <body>
@@ -58,23 +26,16 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="text-primary"><i class="fas fa-book-open me-2"></i>Travaux de Recherche</h2>
             <c:if test="${not isCandidat}">
-                <a href="/these/nouveau" class="btn btn-primary rounded-pill px-4"><i class="fas fa-plus-circle me-2"></i>Nouvelle Thèse</a>
+                <a href="/these/nouveau" class="btn btn-primary rounded-pill px-4"><i class="fas fa-plus-circle me-2"></i> Nouvelle Thèse</a>
             </c:if>
             <c:if test="${isCandidat}">
-                <a href="/these/candidat/nouveau" class="btn btn-success rounded-pill px-4"><i class="fas fa-plus-circle me-2"></i>Déclarer ma thèse</a>
+                <a href="/these/candidat/nouveau" class="btn btn-primary rounded-pill px-4"><i class="fas fa-plus-circle me-2"></i> Déclarer ma thèse</a>
             </c:if>
         </div>
 
-<%--        <c:if test="${isCandidat}">--%>
-<%--            <div class="alert alert-info alert-dismissible fade show shadow-sm rounded-pill">--%>
-<%--                <i class="fas fa-info-circle me-2"></i> Vous ne voyez que vos propres thèses.--%>
-<%--                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>--%>
-<%--            </div>--%>
-<%--        </c:if>--%>
-
-        <div class="accordion shadow-sm" id="accordionTheses">
+        <div class="accordion" id="accordionTheses">
             <c:forEach items="${listeTheses}" var="t">
-                <div class="accordion-item mb-3 border-0 overflow-hidden rounded-3 shadow-sm thesis-card">
+                <div class="accordion-item mb-3 border-0 rounded-3 shadow-sm thesis-card">
                     <h2 class="accordion-header" id="heading${t.id}">
                         <button class="accordion-button collapsed bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${t.id}">
                             <div class="w-100">
@@ -103,22 +64,30 @@
                                     <p class="text-dark">${t.problematique}</p>
                                 </div>
                                 <div class="col-md-6 border-end">
-                                    <h6 class="fw-bold text-warning"><i class="fas fa-lightbulb me-2"></i>Solution proposée</h6>
-                                    <p class="text-secondary">${t.solution}</p>
+                                    <h6 class="fw-bold text-secondary"><i class="fas fa-lightbulb me-2"></i>Solution proposée</h6>
+                                    <p class="text-dark">${t.solution}</p>
                                 </div>
                                 <div class="col-md-6">
-                                    <h6 class="fw-bold text-success"><i class="fas fa-chart-line me-2"></i>Impact attendu</h6>
-                                    <p class="text-secondary">${t.impact}</p>
+                                    <h6 class="fw-bold text-secondary"><i class="fas fa-chart-line me-2"></i>Impact attendu</h6>
+                                    <p class="text-dark">${t.impact}</p>
                                 </div>
                             </div>
                             <div class="d-flex justify-content-end mt-4 gap-2">
                                 <c:if test="${not isCandidat}">
-                                    <a href="/these/modifier/${t.id}" class="btn btn-outline-warning btn-sm rounded-pill px-3"><i class="fas fa-edit"></i> Modifier</a>
-                                    <a href="/these/supprimer/${t.id}" class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash"></i> Supprimer</a>
+                                    <a href="/these/modifier/${t.id}" class="btn btn-outline-primary btn-sm rounded-pill px-3" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="/these/supprimer/${t.id}" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="return confirm('Supprimer ?')" title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
                                 </c:if>
                                 <c:if test="${isCandidat}">
-                                    <a href="/these/modifier-moi/${t.id}" class="btn btn-outline-warning btn-sm rounded-pill px-3"><i class="fas fa-edit"></i> Modifier</a>
-                                    <a href="/these/supprimer-moi/${t.id}" class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash"></i> Supprimer</a>
+                                    <a href="/these/modifier-moi/${t.id}" class="btn btn-outline-primary btn-sm rounded-pill px-3" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="/these/supprimer-moi/${t.id}" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="return confirm('Supprimer ?')" title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
                                 </c:if>
                             </div>
                         </div>
@@ -133,15 +102,11 @@
                 <h4 class="text-muted">Aucune thèse trouvée</h4>
                 <c:if test="${isCandidat}">
                     <p class="mb-3">Vous n’avez pas encore déclaré de thèse.</p>
-                    <a href="/these/candidat/nouveau" class="btn btn-primary rounded-pill px-4">
-                        <i class="fas fa-plus-circle me-2"></i>Déclarer ma thèse
-                    </a>
+                    <a href="/these/candidat/nouveau" class="btn btn-primary rounded-pill px-4"><i class="fas fa-plus-circle me-2"></i> Déclarer ma thèse</a>
                 </c:if>
                 <c:if test="${not isCandidat}">
                     <p class="mb-3">Aucune thèse n’est encore enregistrée.</p>
-                    <a href="/these/nouveau" class="btn btn-primary rounded-pill px-4">
-                        <i class="fas fa-plus-circle me-2"></i>Ajouter une thèse
-                    </a>
+                    <a href="/these/nouveau" class="btn btn-primary rounded-pill px-4"><i class="fas fa-plus-circle me-2"></i> Ajouter une thèse</a>
                 </c:if>
             </div>
         </c:if>

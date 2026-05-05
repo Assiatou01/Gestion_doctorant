@@ -4,6 +4,7 @@ import esmt.sn.cartographiedoctorantsedmi.entity.Role;
 import esmt.sn.cartographiedoctorantsedmi.entity.Utilisateur;
 import esmt.sn.cartographiedoctorantsedmi.repository.UtilisateurRepository;
 import esmt.sn.cartographiedoctorantsedmi.service.CsvImportService;
+import esmt.sn.cartographiedoctorantsedmi.service.UtilisateurService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +22,7 @@ public class AdminController {
 
     private final CsvImportService csvImportService;
     private final UtilisateurRepository utilisateurRepository;
+    private final UtilisateurService utilisateurService;
 
     @PostMapping("/import-csv")
     @PreAuthorize("hasAuthority('ROLE_ADMINISTRATEUR')")
@@ -56,5 +58,16 @@ public class AdminController {
     public String supprimerUtilisateur(@PathVariable Long id) {
         utilisateurRepository.deleteById(id);
         return "redirect:/admin/utilisateurs";
+    }
+
+    // AJOUT : création d’un nouvel utilisateur (admin ou gestionnaire)
+    @PostMapping("/utilisateur/creer")
+    @PreAuthorize("hasRole('ADMINISTRATEUR')")
+    public String creerUtilisateur(@RequestParam String email,
+                                   @RequestParam String password,
+                                   @RequestParam Role role,
+                                   @RequestParam String nom) {
+        utilisateurService.registerManualUser(email, password, role, nom);
+        return "redirect:/admin/utilisateurs?created";
     }
 }

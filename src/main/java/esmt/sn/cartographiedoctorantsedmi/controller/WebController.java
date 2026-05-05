@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Controller
 @RequiredArgsConstructor
@@ -201,18 +202,52 @@ public class WebController {
 //        return "redirect:/doctorants";
 //    }
 
+//    @PostMapping("/doctorant/save")
+//    public String saveDoctorant(@ModelAttribute Doctorant doctorant,
+//                                @RequestParam(value = "faculte.id", required = false) Long faculteId,
+//                                @RequestParam(value = "laboratoire.id", required = false) Long laboratoireId) {
+//
+//        if (faculteId != null) {
+//            Faculte faculte = faculteRepository.findById(faculteId).orElse(null);
+//            doctorant.setFaculte(faculte);
+//        } else {
+//            doctorant.setFaculte(null);
+//        }
+//
+//        if (laboratoireId != null) {
+//            Laboratoire labo = laboratoireRepository.findById(laboratoireId).orElse(null);
+//            doctorant.setLaboratoire(labo);
+//        } else {
+//            doctorant.setLaboratoire(null);
+//        }
+//
+//        doctorantRepository.save(doctorant);
+//        return "redirect:/doctorants";
+//    }
+
     @PostMapping("/doctorant/save")
     public String saveDoctorant(@ModelAttribute Doctorant doctorant,
                                 @RequestParam(value = "faculte.id", required = false) Long faculteId,
-                                @RequestParam(value = "laboratoire.id", required = false) Long laboratoireId) {
+                                @RequestParam(value = "laboratoire.id", required = false) Long laboratoireId,
+                                Authentication authentication) {
 
+        // Vérifier si l'utilisateur est un candidat
+        if (authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            Long candidatId = userDetails.getUtilisateur().getDoctorant().getId();
+            if (!candidatId.equals(doctorant.getId())) {
+                return "redirect:/doctorant/mes-theses?error=unauthorized";
+            }
+        }
+
+        // Traitement des facultés et laboratoires (inchangé)
         if (faculteId != null) {
             Faculte faculte = faculteRepository.findById(faculteId).orElse(null);
             doctorant.setFaculte(faculte);
         } else {
             doctorant.setFaculte(null);
         }
-
         if (laboratoireId != null) {
             Laboratoire labo = laboratoireRepository.findById(laboratoireId).orElse(null);
             doctorant.setLaboratoire(labo);
@@ -271,8 +306,30 @@ public class WebController {
 //        model.addAttribute("listeDoctorants", doctorantRepository.findAll());
 //        return "doctorants";
 //    }
+//    @GetMapping("/doctorants")
+//    public String showDoctorantsList(@RequestParam(required = false) Long laboratoireId,
+//                                     Model model, Authentication authentication) {
+//        if (authentication != null && authentication.getAuthorities().stream()
+//                .anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
+//            return "redirect:/doctorant/mes-theses?error=unauthorized";
+//        }
+//
+//        List<Doctorant> doctorants;
+//        if (laboratoireId != null && laboratoireId > 0) {
+//            doctorants = doctorantRepository.findByLaboratoireId(laboratoireId);
+//        } else {
+//            doctorants = doctorantRepository.findAll();
+//        }
+//
+//        model.addAttribute("listeDoctorants", doctorants);
+//        model.addAttribute("laboratoires", laboratoireRepository.findAll());
+//        model.addAttribute("selectedLaboratoireId", laboratoireId);
+//        return "doctorants";
+//    }
+
     @GetMapping("/doctorants")
     public String showDoctorantsList(@RequestParam(required = false) Long laboratoireId,
+                                     @RequestParam(required = false) String lettre,
                                      Model model, Authentication authentication) {
         if (authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDAT"))) {
@@ -286,9 +343,18 @@ public class WebController {
             doctorants = doctorantRepository.findAll();
         }
 
+        // Filtrage par première lettre (nom ou prénom)
+        if (lettre != null && !lettre.isEmpty() && !"Tous".equals(lettre)) {
+            doctorants = doctorants.stream()
+                    .filter(d -> (d.getLastName() != null && d.getLastName().toLowerCase().startsWith(lettre.toLowerCase()))
+                            || (d.getFirstName() != null && d.getFirstName().toLowerCase().startsWith(lettre.toLowerCase())))
+                    .collect(Collectors.toList());
+        }
+
         model.addAttribute("listeDoctorants", doctorants);
         model.addAttribute("laboratoires", laboratoireRepository.findAll());
         model.addAttribute("selectedLaboratoireId", laboratoireId);
+        model.addAttribute("selectedLettre", lettre);
         return "doctorants";
     }
 

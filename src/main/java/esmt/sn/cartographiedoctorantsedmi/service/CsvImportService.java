@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.web.multipart.MultipartFile;
+import java.time.format.DateTimeFormatter;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -166,15 +169,17 @@ public class CsvImportService {
             System.err.println("⚠️ Thèse sans intitulé, ignorée pour " + doc.getEmail());
         }
 
-        doc.setDateStart(parseDate(getFromRow(row, "datestart", "datedebut", "debut", "debutthese")));
-        doc.setDateEnd(parseDate(getFromRow(row, "dateend", "datefin", "fin", "finthese")));
+//        doc.setDateStart(parseDate(getFromRow(row, "datestart", "datedebut", "debut", "debutthese")));
+//        doc.setDateEnd(parseDate(getFromRow(row, "dateend", "datefin", "fin", "finthese")));
+        doc.setDateStart(parseDate(getFromRow(row, "date_start", "datestart", "datedebut", "debut", "debutthese")));
+        doc.setDateEnd(parseDate(getFromRow(row, "date_end", "dateend", "datefin", "fin", "finthese")));
         doc.setMaturation(getFromRow(row, "maturation", "niveau", "statut"));
         doc.setInteret(getFromRow(row, "interet", "centresdinteret", "interets"));
         doc.setSouhait(getFromRow(row, "souhait", "insertion", "souhaitdinsertion"));
         doc.setCv(getFromRow(row, "cv", "liencv", "drive"));
 
         handleCompetences(getFromRow(row, "competences", "competence", "skills"), doc);
-        handleDomaines(getFromRow(row, "domainerecherche", "domaines", "researchdomain"), doc);
+        handleDomaines(getFromRow(row, "domaine_recherche", "domainerecherche", "domaines", "researchdomain"), doc);
         handlePublications(getFromRow(row, "publication", "publications", "articles"), doc);
 
         String pubFaire = getFromRow(row, "publicationfaire", "apublie", "haspublications");
@@ -197,22 +202,73 @@ public class CsvImportService {
         return s == null || s.trim().isEmpty();
     }
 
+//    private LocalDate parseDate(String dateStr) {
+//        if (isNullOrEmpty(dateStr)) return null;
+//        dateStr = dateStr.trim().toLowerCase(Locale.FRENCH);
+//        List<DateTimeFormatter> formatters = Arrays.asList(
+//                DateTimeFormatter.ofPattern("MMM-yy", Locale.FRENCH),
+//                DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+//                DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+//                DateTimeFormatter.ofPattern("yyyy")
+//        );
+//        for (DateTimeFormatter f : formatters) {
+//            try {
+//                return LocalDate.parse(dateStr, f);
+//            } catch (DateTimeParseException ignored) {}
+//        }
+//        if (dateStr.matches("\\d{4}")) {
+//            return LocalDate.of(Integer.parseInt(dateStr), 1, 1);
+//        }
+//        return null;
+//    }
+
     private LocalDate parseDate(String dateStr) {
+        System.out.println(">>> parseDate reçoit : '" + dateStr + "'");
         if (isNullOrEmpty(dateStr)) return null;
-        dateStr = dateStr.trim().toLowerCase(Locale.FRENCH);
-        List<DateTimeFormatter> formatters = Arrays.asList(
-                DateTimeFormatter.ofPattern("MMM-yy", Locale.FRENCH),
-                DateTimeFormatter.ofPattern("dd/MM/yyyy"),
-                DateTimeFormatter.ofPattern("yyyy-MM-dd"),
-                DateTimeFormatter.ofPattern("yyyy")
-        );
-        for (DateTimeFormatter f : formatters) {
+        dateStr = dateStr.trim();
+
+        // Déjà au format dd/MM/yyyy ?
+        if (dateStr.matches("\\d{2}/\\d{2}/\\d{4}")) {
             try {
-                return LocalDate.parse(dateStr, f);
-            } catch (DateTimeParseException ignored) {}
+                return LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            } catch (DateTimeParseException e) { /* ignorer */ }
         }
+
+        // dd-MM-yyyy
+        if (dateStr.matches("\\d{2}-\\d{2}-\\d{4}")) {
+            try {
+                return LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+            } catch (DateTimeParseException e) { /* ignorer */ }
+        }
+
+        // yyyy-MM-dd
+        if (dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            try {
+                return LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            } catch (DateTimeParseException e) { /* ignorer */ }
+        }
+
+        // yyyy (juste l'année)
         if (dateStr.matches("\\d{4}")) {
             return LocalDate.of(Integer.parseInt(dateStr), 1, 1);
+        }
+
+        // Format français "dd MMM yyyy" ou "MMM-yy"
+        try {
+            DateTimeFormatter frenchFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.FRENCH);
+            return LocalDate.parse(dateStr, frenchFormatter);
+        } catch (DateTimeParseException e1) {
+            try {
+                DateTimeFormatter frenchShort = DateTimeFormatter.ofPattern("MMM-yy", Locale.FRENCH);
+                return LocalDate.parse(dateStr, frenchShort);
+            } catch (DateTimeParseException e2) {
+                // Essayer d'extraire une année à 4 chiffres
+                Pattern p = Pattern.compile("\\d{4}");
+                Matcher m = p.matcher(dateStr);
+                if (m.find()) {
+                    return LocalDate.of(Integer.parseInt(m.group()), 1, 1);
+                }
+            }
         }
         return null;
     }

@@ -31,7 +31,7 @@ public class SecurityConfig {
 
                         // Modification et upload de CV (candidat, gestionnaire et admin)
                         // – le contrôleur vérifiera que le candidat ne modifie que son propre profil
-                        .requestMatchers("/doctorant/modifier/**", "/doctorant/upload-cv/**").hasAnyRole("CANDIDAT", "GESTIONNAIRE", "ADMINISTRATEUR")
+                        .requestMatchers("/doctorant/modifier/**", "/doctorant/upload-cv/**", "/doctorant/save").hasAnyRole("CANDIDAT", "GESTIONNAIRE", "ADMINISTRATEUR")
 
                         // Pages de gestion (dashboard, listes, thèses, etc.) – réservés aux gestionnaires et admins
                         .requestMatchers("/dashboard/**", "/doctorants", "/theses", "/these/**",
